@@ -10,13 +10,14 @@ Host filesystem access for WA-OS processes via **RPC over sockets**, same patter
 | WASM registry module | [`cpp-rpc/src/examples/modules/fs.cpp`](../cpp-rpc/src/examples/modules/fs.cpp) → `fs.wasm` |
 | Generated TS API | [`src/fsApi.ts`](src/fsApi.ts) |
 | Node host | this package (`FsService`, `createFsProcess`) |
+| Example consumer | [`debug-store/`](../debug-store/) WASM module |
 | Future C++ host | `cpp-fs` (not started) |
 
 ## Why
 
 - Durable snapshots / I/O logs / service logs need a host sink without giving WASM WASI file access.
 - Capability = who is `bind`ed to the FS process socket.
-- Later **debug-service** can use this on Node; in the browser it would use WebSocket upload instead — same consumer API shape, different sink.
+- Consumers include **`debug-store` WASM** (session capture → mkdir/open/write under `rootDir`). In the browser a different sink (e.g. WebSocket upload) can replace the Node host while keeping the same FS RPC shape.
 
 ## Architecture
 
