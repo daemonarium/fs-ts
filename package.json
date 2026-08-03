@@ -1,0 +1,28 @@
+{
+  "name": "@wa-os/ts-fs",
+  "version": "0.1.0",
+  "description": "WA-OS filesystem service — LocalProcess host over RPC sockets (Node)",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "dist/src/index.d.ts",
+  "author": "Michał Łaszczewski",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "tsx ../node_modules/mocha/bin/mocha.js --timeout 10000 'tests/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@wa-os/ts-kernel": "*",
+    "@wa-os/ts-rpc": "*"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.0",
+    "@types/node": "^22.18.11",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
+    "tsx": "^4.7.0"
+  }
+}
