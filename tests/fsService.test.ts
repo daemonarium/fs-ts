@@ -8,8 +8,8 @@ import {
   SocketRpcClient,
   RpcException,
   type SocketOptions,
-} from '@wa-os/ts-rpc'
-import { Kernel, LocalProcess } from '@wa-os/ts-kernel'
+} from '@daemonarium/rpc'
+import { Kernel, LocalProcess } from '@daemonarium/kernel'
 import {
   bindToFsProcess,
   createFsProcess,

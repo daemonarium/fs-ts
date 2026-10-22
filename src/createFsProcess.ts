@@ -6,8 +6,8 @@ import {
   TypeKind,
   type TypeRegistry,
   type SocketOptions,
-} from '@wa-os/ts-rpc'
-import { Kernel, LocalProcess, Direction } from '@wa-os/ts-kernel'
+} from '@daemonarium/rpc'
+import { Kernel, LocalProcess, Direction } from '@daemonarium/kernel'
 import { createGeneratedTypeRegistry } from './fsApi.js'
 import { FsService } from './FsService.js'
 

@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { RpcException } from '@wa-os/ts-rpc'
+import { RpcException } from '@daemonarium/rpc'
 
 /**
  * Resolve a service-relative path against rootDir.

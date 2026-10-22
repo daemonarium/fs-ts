@@ -1,102 +1,71 @@
-# ts-fs (`@wa-os/ts-fs`)
+# fs
 
-Status: **implemented** (Node `LocalProcess` host).
+The Node filesystem host for Daemonarium. A `LocalProcess` speaks the
+filesystem RPC on one socket. No WASI. A guest can touch files only
+when something binds it to that socket.
 
-Host filesystem access for WA-OS processes via **RPC over sockets**, same pattern as the kernel API. No WASI: processes must not bypass the socket contract.
+The npm package is `@daemonarium/fs`. This repository is
+`daemonarium/fs-ts`.
 
-| Piece | Location |
-|-------|----------|
-| Shared contract | [`cpp-rpc/src/examples/structures/fs.hpp`](../cpp-rpc/src/examples/structures/fs.hpp) |
-| WASM registry module | [`cpp-rpc/src/examples/modules/fs.cpp`](../cpp-rpc/src/examples/modules/fs.cpp) → `fs.wasm` |
-| Generated TS API | [`src/fsApi.ts`](src/fsApi.ts) |
-| Node host | this package (`FsService`, `createFsProcess`) |
-| Example consumer | [`debug-store/`](../debug-store/) WASM module |
-| Future C++ host | `cpp-fs` (not started) |
+## Why it is not in the kernel
 
-## Why
+The kernel stays off the host disk, so the same process contract runs
+in the browser and in Node. This package is the Node sink: one
+`rootDir`, `node:fs` underneath. A browser sink can implement the same
+RPC later. `debug-store`, the first Wasm consumer, is a separate
+repository.
 
-- Durable snapshots / I/O logs / service logs need a host sink without giving WASM WASI file access.
-- Capability = who is `bind`ed to the FS process socket.
-- Consumers include **`debug-store` WASM** (session capture → mkdir/open/write under `rootDir`). In the browser a different sink (e.g. WebSocket upload) can replace the Node host while keeping the same FS RPC shape.
-
-## Architecture
+## Install
 
 ```
-Consumer process
-    │  RPC (bind to FS socket)
-    ▼
-ts-fs LocalProcess (@wa-os/ts-fs)
-    │
-    ▼
-host filesystem (one rootDir per instance)
+npm i @daemonarium/fs
 ```
 
-## Semantics
+Depends on `@daemonarium/kernel` and `@daemonarium/rpc`.
 
-- Paths are relative to `rootDir`. Absolute paths, NUL, and `..` escapes → `fs_invalid_path`.
-- `mkdir` creates parents (`mkdir -p`).
-- `open(CREATE…)` with missing parent directory → `fs_not_found`.
-- `write` is all-or-throw (returns byte count = input length).
-- `read` returns empty `binary` at EOF.
-- `APPEND`: each `write` goes to EOF; `seek` only affects subsequent `read`.
-- `rename` follows POSIX file replace rules.
-
-### Flags (`open_flag`)
-
-`READ`, `WRITE`, `CREATE`, `TRUNCATE`, `APPEND` (bitmask).
-
-### Methods
-
-`mkdir`, `rmdir`, `readdir`, `unlink`, `rename`, `stat`, `exists`, `open`, `close`, `write`, `read`, `seek`, `sync`.
-
-### Exceptions
-
-`fs_error`, `fs_not_found`, `fs_already_exists`, `fs_not_a_directory`, `fs_is_a_directory`, `fs_invalid_path`, `fs_invalid_handle`, `fs_invalid_flag`, `fs_io_error`.
-
-## Usage
+## One example
 
 ```ts
-import { Kernel, LocalProcess } from '@wa-os/ts-kernel'
-import { createFsProcess, bindToFsProcess, open_flag } from '@wa-os/ts-fs'
-import { CodecRegistry, registerDynamicCodecs, SocketRpcClient } from '@wa-os/ts-rpc'
+import { Kernel, LocalProcess } from '@daemonarium/kernel'
+import { CodecRegistry, SocketRpcClient, registerDynamicCodecs } from '@daemonarium/rpc'
+import { bindToFsProcess, createFsProcess, open_flag } from '@daemonarium/fs'
 
 const kernel = new Kernel()
 const fs = createFsProcess(kernel, { rootDir: './data', processId: 1 })
 
 const client = new LocalProcess(kernel, 2, 1_000_000)
 kernel.processes[2] = client
-client.createSocket(0, { /* buffer sizes */ })
+client.createSocket(0, {
+  inputBufferSize: 65536,
+  outputBufferSize: 65536,
+  flushThreshold: 4096,
+  dataEventThreshold: 0,
+  drainEventThreshold: 4,
+  flags: 0,
+})
 bindToFsProcess(client, 0, fs)
 
 const codecs = new CodecRegistry()
 registerDynamicCodecs(codecs, fs.registry)
 const rpc = new SocketRpcClient(client.getSocket(0)!, fs.registry, codecs)
-// rpc.call(methodId, ...)
+const mkdir = fs.registry.getMethods().find((m) => m.memberName === 'fs.mkdir')
+await rpc.call(mkdir!.methodId, 'logs')
 ```
 
-## Regenerate `fsApi.ts`
+The write and read round-trip is in [docs/examples.md](docs/examples.md).
 
-Requires WASM toolchain + existing `cmake-build-emscripten`:
+## Paths and methods
 
-```bash
-cmake --build cmake-build-emscripten --target fs
-cd ts-rpc && npm run build
-node dist/src/codeGenCli.js \
-  ../cmake-build-emscripten/examples/modules/fs.wasm \
-  -l "TS Server" -s 0 \
-  > ../ts-fs/src/fsApi.ts
-```
+Every path is relative to `rootDir`. Absolute paths, NUL, and `..`
+are `fs_invalid_path`.
 
-## Tests
+Methods: `mkdir`, `rmdir`, `readdir`, `unlink`, `rename`, `stat`,
+`exists`, `open`, `close`, `write`, `read`, `seek`, `sync`.
 
-```bash
-npm install   # root workspaces, includes ts-fs
-cd ts-fs && npm test
-```
+Flags, exceptions, and append rules are in
+[docs/architecture.md](docs/architecture.md).
 
-## Out of scope (here)
+## License
 
-- `debug-service`, browser upload / WS sink
-- `cpp-fs`
-- `attach(file_id ↔ socket)` streaming fast-path
-- WASI, kernel API changes
+MIT. Upstream notices are in `NOTICE`. Conduct is in
+`CODE_OF_CONDUCT.md`.

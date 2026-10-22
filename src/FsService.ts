@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import type { FileHandle } from 'node:fs/promises'
-import { RpcException } from '@wa-os/ts-rpc'
+import { RpcException } from '@daemonarium/rpc'
 import {
   open_flag,
   seek_whence,

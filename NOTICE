@@ -1,0 +1,11 @@
+fs-ts
+Copyright (c) 2026 Magowie Sp. z o.o.
+
+This package depends on @daemonarium/kernel and @daemonarium/rpc:
+https://github.com/daemonarium/kernel-ts
+https://github.com/daemonarium/rpc-ts
+
+The RPC names match daemonarium/rpc-cpp v0.1.0, src/examples/structures/fs.hpp:
+https://github.com/daemonarium/rpc-cpp
+
+The sink is Node's node:fs.
